@@ -1,0 +1,34 @@
+# Build outputs
+bin/
+dist/
+*.exe
+*.dll
+*.o
+*.a
+
+# Dependencies
+vendor/
+node_modules/
+go.sum
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+storage
+/config
