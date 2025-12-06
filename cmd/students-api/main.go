@@ -3,6 +3,7 @@ package main
 import (
 	"codersGyan/crud/internal/config"
 	"codersGyan/crud/internal/http/handlers/students"
+	"codersGyan/crud/internal/storage/sqlite"
 	"context"
 	"log"
 	"log/slog"
@@ -19,10 +20,16 @@ func main() {
 
 	//database setup
 
+	_, err := sqlite.New(cfg)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	slog.Info("storage Initialzed", slog.String("env", cfg.ENV),slog.String("version","1.0.0"))
 	//setup router
 	router := http.NewServeMux()
 
-	router.HandleFunc("GET /api/students", students.New())
+	router.HandleFunc("POST /api/students", students.New())
 
 	//setup server
 	server := http.Server{
@@ -49,9 +56,9 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	err := server.Shutdown(ctx)
+	errs:= server.Shutdown(ctx)
 
-	if err != nil {
+	if errs != nil {
 		slog.Error("failed to shutdown ", slog.String("error", err.Error()))
 	}
 
