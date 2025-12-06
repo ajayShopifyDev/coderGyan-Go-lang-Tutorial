@@ -16,20 +16,22 @@ import (
 
 func main() {
 	//load config
+
 	cfg := config.MustLoad()
+	// database setup
 
-	//database setup
-
-	_, err := sqlite.New(cfg)
-
+	storage, err := sqlite.New(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
-	slog.Info("storage Initialzed", slog.String("env", cfg.ENV),slog.String("version","1.0.0"))
-	//setup router
+
+	slog.Info("storage initialized", slog.String("env", cfg.ENV), slog.String("version", "1.0.0"))
+
+	// setup router
 	router := http.NewServeMux()
 
-	router.HandleFunc("POST /api/students", students.New())
+	router.HandleFunc("POST /api/students", students.New(storage))
+	router.HandleFunc("GET /api/students",students.GETbyID(storage))
 
 	//setup server
 	server := http.Server{
@@ -56,7 +58,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	errs:= server.Shutdown(ctx)
+	errs := server.Shutdown(ctx)
 
 	if errs != nil {
 		slog.Error("failed to shutdown ", slog.String("error", err.Error()))
