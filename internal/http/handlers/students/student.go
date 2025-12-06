@@ -56,7 +56,7 @@ func New(storage storage.Storage) http.HandlerFunc {
 	}
 }
 
-func GETbyID(storage.Storage) http.HandlerFunc {
+func GETbyID(storage storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 		slog.Info("getting a student", slog.String("id:", id))
@@ -69,9 +69,41 @@ func GETbyID(storage.Storage) http.HandlerFunc {
 
 		student, err := storage.GetStudentbyID(intId)
 		if err != nil {
+			slog.Error("Error getting user :",slog.String("id:",id))
 			response.WriteJSON(w, http.StatusInternalServerError, response.GeneralError(err))
 			return
 		}
-		response.WriteJSON(w, http.StatusOK,student)
+		response.WriteJSON(w, http.StatusOK, student)
+	}
+}
+
+func GetList(storage storage.Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter,r *http.Request){
+	slog.Info("Fetch all students")
+
+	students,err:= storage.GetAllStudents()
+	
+	if err !=nil {
+		response.WriteJSON(w,http.StatusInternalServerError,response.GeneralError(err))
+		return 
+	}
+
+	response.WriteJSON(w,http.StatusOK,students)
+	}
+}
+
+func updateStudent(storage storage.Storage) http.HandlerFunc{
+	return func(w http.ResponseWriter, r *http.Request){
+		id:= r.PathValue("id")
+		name,email,age:= r.Body()
+		slog.Info("Update customer by id",slog.String("Id:",id))
+        student,err := storage.UpdateStudentbyID(id,name,email,age)
+
+		if err!=nil {
+			response.WriteJSON(w,http.StatusInternalServerError,response.GeneralError(err))
+			return 
+		}
+
+		response.WriteJSON(w,http.StatusOK,student)
 	}
 }
