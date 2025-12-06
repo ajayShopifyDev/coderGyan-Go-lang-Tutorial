@@ -2,9 +2,15 @@ package main
 
 import (
 	"codersGyan/crud/internal/config"
-	"fmt"
+	"codersGyan/crud/internal/http/handlers/students"
+	"context"
 	"log"
+	"log/slog"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 func main() {
@@ -16,20 +22,39 @@ func main() {
 	//setup router
 	router := http.NewServeMux()
 
-	http.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("welcome to students API"))
-	})
+	router.HandleFunc("GET /api/students", students.New())
 
 	//setup server
 	server := http.Server{
 		Addr:    cfg.Addr,
 		Handler: router,
 	}
-	fmt.Println("Server Start")
 
-	err := server.ListenAndServe()
+	slog.Info("server start", slog.String("address :", cfg.Addr))
+	//fmt.Printf("Server Start at %s", cfg.HTTPServer.Addr)
+
+	done := make(chan os.Signal, 1)
+
+	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		err := server.ListenAndServe()
+		if err != nil {
+			log.Fatal("failed to start Server")
+		}
+	}()
+
+	<-done
+
+	slog.Info("shutting down the Server")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	err := server.Shutdown(ctx)
+
 	if err != nil {
-		log.Fatal("failed to start Server")
+		slog.Error("failed to shutdown ", slog.String("error", err.Error()))
 	}
+
+	slog.Info("Server Shutdown successfully")
 
 }
