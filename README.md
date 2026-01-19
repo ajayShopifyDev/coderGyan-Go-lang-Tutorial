@@ -1,3 +1,1 @@
-# Go-
-# Go-
-# coderGyan-Go-lang-Tutorial
+go run cmd/students-api/main.go -config config/local.yaml
