@@ -69,7 +69,7 @@ func GETbyID(storage storage.Storage) http.HandlerFunc {
 
 		student, err := storage.GetStudentbyID(intId)
 		if err != nil {
-			slog.Error("Error getting user :",slog.String("id:",id))
+			slog.Error("Error getting user :", slog.String("id:", id))
 			response.WriteJSON(w, http.StatusInternalServerError, response.GeneralError(err))
 			return
 		}
@@ -78,32 +78,83 @@ func GETbyID(storage storage.Storage) http.HandlerFunc {
 }
 
 func GetList(storage storage.Storage) http.HandlerFunc {
-	return func(w http.ResponseWriter,r *http.Request){
-	slog.Info("Fetch all students")
+	return func(w http.ResponseWriter, r *http.Request) {
+		slog.Info("Fetch all students")
 
-	students,err:= storage.GetAllStudents()
-	
-	if err !=nil {
-		response.WriteJSON(w,http.StatusInternalServerError,response.GeneralError(err))
-		return 
-	}
+		students, err := storage.GetAllStudents()
 
-	response.WriteJSON(w,http.StatusOK,students)
+		if err != nil {
+			response.WriteJSON(w, http.StatusInternalServerError, response.GeneralError(err))
+			return
+		}
+
+		response.WriteJSON(w, http.StatusOK, students)
 	}
 }
 
-func updateStudent(storage storage.Storage) http.HandlerFunc{
-	return func(w http.ResponseWriter, r *http.Request){
-		id:= r.PathValue("id")
-		name,email,age:= r.Body()
-		slog.Info("Update customer by id",slog.String("Id:",id))
-        student,err := storage.UpdateStudentbyID(id,name,email,age)
+func UpdateStudent(storage storage.Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+		
+		slog.Info("Update customer by id", slog.String("Id:", id))
 
-		if err!=nil {
-			response.WriteJSON(w,http.StatusInternalServerError,response.GeneralError(err))
-			return 
+		var student types.Student
+
+		err := json.NewDecoder(r.Body).Decode(&student)
+
+		if errors.Is(err, io.EOF) {
+			response.WriteJSON(w, http.StatusBadRequest, response.GeneralError(fmt.Errorf("Empty Body..")))
+			return
 		}
 
-		response.WriteJSON(w,http.StatusOK,student)
+		if err != nil {
+			response.WriteJSON(w, http.StatusBadRequest, response.GeneralError(err))
+			return
+		}
+
+		//validate RequestData
+
+		if errs := validator.New().Struct(student); errs != nil {
+			validateErrors := errs.(validator.ValidationErrors)
+			response.WriteJSON(w, http.StatusBadRequest, response.ValidateError(validateErrors))
+			return
+		}
+		intId, err := strconv.ParseInt(id, 10, 64)
+
+		if err != nil {
+			response.WriteJSON(w, http.StatusBadRequest, response.GeneralError(err))
+			return
+		}
+		student, err = storage.UpdateStudentbyID(intId, student.Name, student.Email, student.Age)
+
+		if err != nil {
+			response.WriteJSON(w, http.StatusInternalServerError, response.GeneralError(err))
+			return
+		}
+
+		response.WriteJSON(w, http.StatusOK, student)
 	}
+}
+
+
+func DeleteStudent(storage storage.Storage) http.HandlerFunc{
+	return func(w http.ResponseWriter,r * http.Request){
+		id := r.PathValue("id")
+		slog.Info("Deleting a student", slog.String("id:", id))
+
+		intId, err := strconv.ParseInt(id, 10, 64)
+		if err != nil {
+			response.WriteJSON(w, http.StatusBadRequest, response.GeneralError(err))
+			return
+		}
+
+		status,err:= storage.DeleteStudentByID(intId)
+		if err != nil {
+			response.WriteJSON(w, http.StatusInternalServerError, response.GeneralError(err))
+			return
+		}
+
+		response.WriteJSON(w, http.StatusOK, status)
+	}
+
 }
